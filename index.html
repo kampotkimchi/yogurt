@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The World of Yogurt: An Interactive Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* <!-- APPLICATION STRUCTURE RATIONALE -->
+        The application is structured as a narrative journey to guide the user from foundational knowledge to practical application. This thematic flow is more intuitive than a dry, report-style layout.
+        1.  **Hero Section:** A visually engaging introduction to capture user interest.
+        2.  **The Science:** Explains the fundamental "how" of yogurt making, establishing the core concepts.
+        3.  **Nutritional Deep Dive:** Compares yogurt to its origin (milk) and explores variations (strained vs. unstrained). This section uses interactive charts to make data exploration engaging and easy to understand.
+        4.  **The Yogurt Universe:** Broadens the user's perspective by showcasing the different types and uses, moving from science to culture.
+        5.  **DIY Corner:** Concludes the journey with actionable steps, empowering the user to apply their newfound knowledge.
+        This structure transforms a collection of facts into a coherent and memorable learning experience.
+        */
+        
+        /* <!-- INTERACTIVITY AND VISUALIZATION CHOICES RATIONALE -->
+        Each interactive element is chosen to serve a specific learning goal, prioritizing clarity and engagement.
+        1.  **Transformation Diagram (HTML/CSS):** A static, custom-styled diagram is used for the chemical process. This avoids library overhead for a simple flowchart and allows for precise styling. The visual steps make the abstract chemical process tangible and easy to follow.
+        2.  **Yogurt vs. Milk Bar Chart (Chart.js):** A bar chart is the ideal choice for direct, quantitative comparison across multiple categories (protein, carbs, calcium). The interactive toggle buttons allow the user to actively switch contexts, reinforcing the nutritional differences more effectively than a static chart.
+        3.  **Strained vs. Unstrained Donut Chart (Chart.js):** A donut chart perfectly illustrates the changing *composition* (part-to-whole relationship) of macronutrients as yogurt is strained. The interactive buttons directly link a user's action (choosing a yogurt type) to a visual change, making the concept of nutrient concentration immediately obvious.
+        4.  **Dynamic Info Cards:** Simple text and value updates in HTML cards provide quick, scannable information that complements the charts, catering to users who prefer reading key stats.
+        */
+
+        :root {
+            --background-color: #f8f8f8;
+            --text-primary: #1d1d1f;
+            --text-secondary: #515154;
+            --accent-color: #007aff;
+            --accent-hover: #0071e3;
+            --border-color: #d2d2d7;
+            --card-background: #ffffff;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 350px;
+        }
+
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+                max-height: 400px;
+            }
+        }
+
+        .nav-link {
+            transition: color 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+            color: var(--text-secondary);
+        }
+
+        .nav-link:hover {
+            color: var(--accent-color);
+        }
+
+        .active-btn {
+            background-color: var(--accent-color) !important;
+            color: white !important;
+        }
+
+        .inactive-btn {
+            background-color: #e5e5ea;
+            color: var(--text-primary);
+        }
+        
+        .inactive-btn:hover {
+            background-color: #dcdce1;
+        }
+
+        .process-step {
+            border-left: 2px solid var(--accent-color);
+            padding-left: 1.5rem;
+            position: relative;
+        }
+        .process-step::before {
+            content: '';
+            position: absolute;
+            left: -0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0.875rem;
+            height: 0.875rem;
+            background-color: var(--background-color);
+            border: 2px solid var(--accent-color);
+            border-radius: 9999px;
+            transition: background-color 0.2s;
+        }
+        .process-step:hover::before {
+             background-color: var(--accent-color);
+        }
+        
+        .arrow {
+            font-size: 2rem;
+            color: var(--border-color);
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white/70 backdrop-blur-xl sticky top-0 z-50 border-b border-gray-200/80">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center max-w-7xl">
+            <div class="text-xl font-semibold text-gray-900">The Yogurt Guide</div>
+            <div class="hidden md:flex space-x-8">
+                <a href="#science" class="nav-link text-sm font-medium">The Science</a>
+                <a href="#nutrition" class="nav-link text-sm font-medium">Nutrition</a>
+                <a href="#types" class="nav-link text-sm font-medium">Types & Uses</a>
+                <a href="#diy" class="nav-link text-sm font-medium">Make Your Own</a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section class="py-24 md:py-32">
+            <div class="container mx-auto px-6 text-center max-w-4xl">
+                <h1 class="text-4xl md:text-6xl font-bold text-gray-900 mb-4 leading-tight tracking-tight">From Milk to Magic.</h1>
+                <p class="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
+                    An interactive guide to the science, health, and craft of making yogurt.
+                </p>
+            </div>
+        </section>
+
+        <section id="science" class="py-16 lg:py-24">
+            <div class="container mx-auto px-6 max-w-5xl">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight">The Transformation</h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">Yogurt is born from a controlled fermentation where bacteria turn liquid milk into a tangy, creamy solid.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-center text-center">
+                    <div class="p-8 bg-white rounded-2xl">
+                        <h3 class="text-lg font-semibold mb-2">Before: Liquid Milk</h3>
+                        <p class="text-gray-600 text-sm">Milk starts as a solution rich in <strong class="font-medium text-blue-600">lactose</strong> (sugar) with suspended <strong class="font-medium text-green-600">casein</strong> (protein) micelles that repel each other.</p>
+                    </div>
+                    <div class="flex justify-center items-center">
+                        <span class="arrow hidden md:block">&#10230;</span>
+                        <span class="arrow block md:hidden transform rotate-90">&#10230;</span>
+                    </div>
+                    <div class="p-8 bg-white rounded-2xl">
+                        <h3 class="text-lg font-semibold mb-2">After: Solid Yogurt</h3>
+                        <p class="text-gray-600 text-sm">Bacteria consume lactose, producing <strong class="font-medium text-red-600">lactic acid</strong>. This acidity causes the casein proteins to coagulate into a mesh, creating the thick texture.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="nutrition" class="py-16 lg:py-24 bg-white">
+            <div class="container mx-auto px-6 max-w-7xl">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight">Nutritional Deep Dive</h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">Explore how fermentation and straining change the nutritional profile of milk.</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center mb-20">
+                    <div>
+                        <h3 class="text-2xl font-bold mb-4 tracking-tight">Yogurt vs. Milk</h3>
+                        <p class="text-gray-600 mb-6">Yogurt is more than just thickened milk. Fermentation makes it easier to digest and adds beneficial probiotics. While milk is higher in calcium, yogurt offers unique advantages for gut health.</p>
+                        <div class="flex space-x-3">
+                            <button id="show-milk-btn" class="px-5 py-2 rounded-lg text-sm font-medium transition-colors duration-200 inactive-btn">Milk</button>
+                            <button id="show-yogurt-btn" class="px-5 py-2 rounded-lg text-sm font-medium transition-colors duration-200 active-btn">Yogurt</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="yogurtVsMilkChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                    <div class="chart-container order-last lg:order-first">
+                        <canvas id="strainingChart"></canvas>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold mb-4 tracking-tight">The Impact of Straining</h3>
+                        <p class="text-gray-600 mb-6">Straining removes whey (liquid), concentrating protein and fat while reducing sugars and some calcium. This creates thicker styles like Greek yogurt and Labneh.</p>
+                        <div class="flex space-x-3 mb-6">
+                            <button data-type="unstrained" class="strain-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-200 active-btn">Unstrained</button>
+                            <button data-type="greek" class="strain-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-200 inactive-btn">Greek</button>
+                            <button data-type="labneh" class="strain-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-200 inactive-btn">Labneh</button>
+                        </div>
+                        <div id="strain-info-card" class="bg-gray-100 p-6 rounded-2xl">
+                            <h4 id="strain-title" class="text-lg font-semibold text-gray-900 mb-2">Unstrained Yogurt</h4>
+                            <p id="strain-desc" class="text-gray-600 text-sm mb-4">The original form. Balanced, with a soft texture. Highest in calcium and natural sugars.</p>
+                            <div class="grid grid-cols-3 gap-4 text-center">
+                                <div>
+                                    <p class="text-xs text-gray-500 uppercase tracking-wider">Protein</p>
+                                    <p id="strain-protein" class="text-2xl font-semibold text-gray-900">9g</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-500 uppercase tracking-wider">Carbs</p>
+                                    <p id="strain-carbs" class="text-2xl font-semibold text-gray-900">12g</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-500 uppercase tracking-wider">Fat</p>
+                                    <p id="strain-fat" class="text-2xl font-semibold text-gray-900">8g</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="types" class="py-16 lg:py-24">
+            <div class="container mx-auto px-6 max-w-7xl">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight">The Yogurt Universe</h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">From drinkable snacks to cheesy spreads, yogurt's versatility is celebrated worldwide.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div class="bg-white p-8 rounded-2xl">
+                        <h3 class="text-xl font-semibold mb-3">Regular / Dahi</h3>
+                        <p class="text-gray-600 mb-5 text-sm">Soft, smooth, and unstrained. A staple in many cultures, perfect for drinks, marinades, and as a cooling side to spicy dishes.</p>
+                        <span class="inline-block bg-green-100 text-green-800 text-xs font-medium px-3 py-1 rounded-full">Best for: Lassi, Raita</span>
+                    </div>
+                    <div class="bg-white p-8 rounded-2xl">
+                        <h3 class="text-xl font-semibold mb-3">Greek-Style</h3>
+                        <p class="text-gray-600 mb-5 text-sm">Strained to remove some whey, resulting in a thick, creamy texture and higher protein content. Ideal for dips and breakfasts.</p>
+                        <span class="inline-block bg-blue-100 text-blue-800 text-xs font-medium px-3 py-1 rounded-full">Best for: Tzatziki, Parfaits</span>
+                    </div>
+                    <div class="bg-white p-8 rounded-2xl">
+                        <h3 class="text-xl font-semibold mb-3">Labneh</h3>
+                        <p class="text-gray-600 mb-5 text-sm">Strained extensively until it resembles a soft cheese. It's tangy, spreadable, and a cornerstone of Middle Eastern cuisine.</p>
+                        <span class="inline-block bg-yellow-100 text-yellow-800 text-xs font-medium px-3 py-1 rounded-full">Best for: Spreads, Dips</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="diy" class="py-16 lg:py-24 bg-white">
+            <div class="container mx-auto px-6 max-w-3xl">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight">Make Your Own</h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">Making yogurt at home is simple and rewarding. Here's a basic roadmap.</p>
+                </div>
+                <div class="space-y-8">
+                    <div class="process-step">
+                        <h4 class="text-lg font-semibold mb-1">Step 1: Heat the Milk</h4>
+                        <p class="text-gray-600">Gently heat milk to 85°C (185°F). This prepares the proteins for a thicker result and ensures a clean slate for fermentation.</p>
+                    </div>
+                    <div class="process-step">
+                        <h4 class="text-lg font-semibold mb-1">Step 2: Cool Down</h4>
+                        <p class="text-gray-600">Let the milk cool to 43-46°C (110-115°F). This is the ideal temperature for the yogurt cultures to thrive.</p>
+                    </div>
+                    <div class="process-step">
+                        <h4 class="text-lg font-semibold mb-1">Step 3: Inoculate</h4>
+                        <p class="text-gray-600">Whisk in your starter – a few tablespoons of a previous batch or a store-bought plain yogurt with live cultures.</p>
+                    </div>
+                    <div class="process-step">
+                        <h4 class="text-lg font-semibold mb-1">Step 4: Ferment</h4>
+                        <p class="text-gray-600">Keep the mixture in a warm, stable environment for 6-24 hours. The longer it sits, the tangier it gets.</p>
+                    </div>
+                    <div class="process-step">
+                        <h4 class="text-lg font-semibold mb-1">Step 5: Chill & Strain (Optional)</h4>
+                        <p class="text-gray-600">Refrigerate for a few hours to set completely. For a thicker style, strain it through a cheesecloth to remove whey.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-gray-100 text-gray-500 py-12">
+        <div class="container mx-auto px-6 text-center text-xs">
+            <p>&copy; 2025 The Yogurt Guide. An interactive exploration of fermented goodness.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            const chartFont = {
+                family: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                size: 12,
+            };
+            
+            const dataColors = {
+                protein: 'rgba(0, 122, 255, 0.8)', // Blue
+                carbs: 'rgba(255, 149, 0, 0.8)',  // Orange
+                fat: 'rgba(255, 59, 48, 0.8)',     // Red
+                benefit: 'rgba(0, 122, 255, 0.6)',
+                benefitBorder: 'rgba(0, 122, 255, 1)',
+            };
+
+            const nutritionData = {
+                milk: {
+                    labels: ['Digestibility', 'Probiotics', 'Calcium', 'B Vitamins'],
+                    values: [5, 1, 10, 6]
+                },
+                yogurt: {
+                    labels: ['Digestibility', 'Probiotics', 'Calcium', 'B Vitamins'],
+                    values: [9, 10, 7, 8]
+                }
+            };
+
+            const strainData = {
+                unstrained: {
+                    title: 'Unstrained Yogurt',
+                    description: 'The original form. Balanced, with a soft texture. Highest in calcium and natural sugars.',
+                    protein: 9,
+                    carbs: 12,
+                    fat: 8
+                },
+                greek: {
+                    title: 'Greek-Style',
+                    description: 'Thick and creamy with concentrated protein. Lower in sugar as some whey is removed.',
+                    protein: 17,
+                    carbs: 6,
+                    fat: 9
+                },
+                labneh: {
+                    title: 'Labneh',
+                    description: 'Very thick and spreadable. Highest in protein and fat, with the lowest sugar content.',
+                    protein: 20,
+                    carbs: 4,
+                    fat: 10
+                }
+            };
+
+            const ctx1 = document.getElementById('yogurtVsMilkChart').getContext('2d');
+            const yogurtVsMilkChart = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: nutritionData.yogurt.labels,
+                    datasets: [{
+                        data: nutritionData.yogurt.values,
+                        backgroundColor: dataColors.benefit,
+                        borderColor: dataColors.benefitBorder,
+                        borderWidth: 1.5,
+                        borderRadius: 6,
+                        barPercentage: 0.6,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 10,
+                            grid: { color: '#e5e5ea' },
+                            ticks: { color: '#515154', font: chartFont }
+                        },
+                        y: {
+                             grid: { display: false },
+                             ticks: { color: '#1d1d1f', font: chartFont }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                            titleFont: { size: 14, weight: '600' },
+                            bodyFont: { size: 12 },
+                            padding: 10,
+                            cornerRadius: 8,
+                            callbacks: {
+                                title: (items) => items[0].label,
+                                label: (item) => ` Score: ${item.formattedValue} / 10`
+                            }
+                        }
+                    }
+                }
+            });
+
+            const showMilkBtn = document.getElementById('show-milk-btn');
+            const showYogurtBtn = document.getElementById('show-yogurt-btn');
+
+            function updateNutritionChart(type) {
+                yogurtVsMilkChart.data.datasets[0].data = nutritionData[type].values;
+                yogurtVsMilkChart.update('none');
+                if (type === 'milk') {
+                    showMilkBtn.classList.replace('inactive-btn', 'active-btn');
+                    showYogurtBtn.classList.replace('active-btn', 'inactive-btn');
+                } else {
+                    showYogurtBtn.classList.replace('inactive-btn', 'active-btn');
+                    showMilkBtn.classList.replace('active-btn', 'inactive-btn');
+                }
+            }
+
+            showMilkBtn.addEventListener('click', () => updateNutritionChart('milk'));
+            showYogurtBtn.addEventListener('click', () => updateNutritionChart('yogurt'));
+
+
+            const ctx2 = document.getElementById('strainingChart').getContext('2d');
+            const strainingChart = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Protein', 'Carbohydrates', 'Fat'],
+                    datasets: [{
+                        data: [strainData.unstrained.protein, strainData.unstrained.carbs, strainData.unstrained.fat],
+                        backgroundColor: [dataColors.protein, dataColors.carbs, dataColors.fat],
+                        borderColor: '#ffffff',
+                        borderWidth: 4,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#1d1d1f',
+                                font: chartFont,
+                                usePointStyle: true,
+                                boxWidth: 8
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                            titleFont: { size: 14, weight: '600' },
+                            bodyFont: { size: 12 },
+                            padding: 10,
+                            cornerRadius: 8,
+                            callbacks: {
+                                title: (items) => items[0].label,
+                                label: (item) => ` ~${item.formattedValue}g (per serving)`
+                            }
+                        }
+                    }
+                }
+            });
+
+            const strainBtns = document.querySelectorAll('.strain-btn');
+            const strainTitle = document.getElementById('strain-title');
+            const strainDesc = document.getElementById('strain-desc');
+            const strainProtein = document.getElementById('strain-protein');
+            const strainCarbs = document.getElementById('strain-carbs');
+            const strainFat = document.getElementById('strain-fat');
+
+            function updateStrainInfo(type) {
+                const data = strainData[type];
+                strainingChart.data.datasets[0].data = [data.protein, data.carbs, data.fat];
+                strainingChart.update();
+
+                strainTitle.textContent = data.title;
+                strainDesc.textContent = data.description;
+                strainProtein.textContent = `${data.protein}g`;
+                strainCarbs.textContent = `${data.carbs}g`;
+                strainFat.textContent = `${data.fat}g`;
+
+                strainBtns.forEach(btn => {
+                    if (btn.dataset.type === type) {
+                        btn.classList.replace('inactive-btn', 'active-btn');
+                    } else {
+                        btn.classList.replace('active-btn', 'inactive-btn');
+                    }
+                });
+            }
+
+            strainBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => updateStrainInfo(e.target.dataset.type));
+            });
+
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const targetElement = document.querySelector(this.getAttribute('href'));
+                    if (targetElement) {
+                        targetElement.scrollIntoView({ behavior: 'smooth' });
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
